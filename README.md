@@ -4,6 +4,8 @@
 When the internet, the cell network and the power are all gone, Dial-Up Lifeline lets any phone send an SOS to every phone nearby, **as sound**.
 
 > Kiroween 2026 · Category: **Resurrection** · Built with [Kiro](https://kiro.dev)
+>
+> **▶ Live app: https://dialup-lifeline.vercel.app** (open on two devices: LISTEN on one, I NEED HELP on the other)
 
 ![Rescue Mode](docs/screenshots/rescue.png)
 

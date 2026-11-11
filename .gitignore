@@ -3,3 +3,4 @@ dist/
 .DS_Store
 # NOTE: never ignore .kiro (required by Kiroween rules)
 _to_delete/
+.vercel
