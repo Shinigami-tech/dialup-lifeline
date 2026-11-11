@@ -24,6 +24,42 @@
         "chatSessionId": "sess_3db1cbfd-210b-4ed2-a05b-419501e63dd3",
         "timestamp": 1794412648201
       }
+    ],
+    "3. Continuous-phase AFSK modulator with 5 ms ramps _(Req 1.1, 1.3)_": [
+      {
+        "executionId": "8dda916d-8218-40d5-a597-47643a42c8ba",
+        "chatSessionId": "sess_84cba14e-9c2c-4c06-8883-157f3931fe95",
+        "timestamp": 1794413091871
+      },
+      {
+        "executionId": "8dda916d-8218-40d5-a597-47643a42c8ba",
+        "chatSessionId": "sess_84cba14e-9c2c-4c06-8883-157f3931fe95",
+        "timestamp": 1794413275093
+      }
+    ],
+    "4. Quadrature-correlator demodulator + PLL clock recovery _(Req 2.2)_": [
+      {
+        "executionId": "4389d17d-a1aa-4266-830e-189a26208a70",
+        "chatSessionId": "sess_98854259-f4ab-4f43-9bd6-88f407b4bc2e",
+        "timestamp": 1794413327490
+      },
+      {
+        "executionId": "4389d17d-a1aa-4266-830e-189a26208a70",
+        "chatSessionId": "sess_98854259-f4ab-4f43-9bd6-88f407b4bc2e",
+        "timestamp": 1794414970475
+      }
+    ],
+    "5. Full modulate->demodulate property test with noise, skew, offsets _(Req 2.5, 3.2)_": [
+      {
+        "executionId": "c90228f1-9bf3-4cfa-84e5-4c9518cfdd36",
+        "chatSessionId": "sess_56034420-244b-420e-9198-e9894c66082c",
+        "timestamp": 1794427039541
+      },
+      {
+        "executionId": "c90228f1-9bf3-4cfa-84e5-4c9518cfdd36",
+        "chatSessionId": "sess_56034420-244b-420e-9198-e9894c66082c",
+        "timestamp": 1794427188147
+      }
     ]
   }
 }
