@@ -1,0 +1,13 @@
+{
+  "name": "Dial-Up Lifeline",
+  "short_name": "Lifeline",
+  "description": "Offline SOS over sound: phones talk to each other like 1990s modems when the network is down.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000d05",
+  "theme_color": "#001a0a",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
