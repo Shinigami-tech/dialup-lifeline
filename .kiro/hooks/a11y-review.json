@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Accessibility check on UI change",
+      "description": "Review changed UI files for contrast, tap target size, labels and reduced motion.",
+      "trigger": "PostFileSave",
+      "matcher": "src/ui/.*[^/]*$",
+      "action": {
+        "type": "agent",
+        "prompt": "Review the edited UI file for: tap targets >= 56px for emergency actions, WCAG AA contrast in both themes, aria-labels on icon buttons, and prefers-reduced-motion handling. List concrete issues with line references and fix them."
+      },
+      "enabled": true
+    }
+  ]
+}

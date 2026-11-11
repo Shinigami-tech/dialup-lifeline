@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "DSP property tests on save",
+      "description": "Whenever modem or packet code changes, run the property-based round-trip tests and report any counterexample.",
+      "trigger": "PostFileSave",
+      "matcher": "src/(modem|packet)/.*\\.ts$",
+      "action": {
+        "type": "agent",
+        "prompt": "Modem or packet code changed. Run `npx vitest run tests/modem tests/packet`. If any fast-check property fails, show the shrunk counterexample, explain the root cause in one paragraph, and propose a minimal fix. Do not weaken the property."
+      },
+      "enabled": true
+    }
+  ]
+}

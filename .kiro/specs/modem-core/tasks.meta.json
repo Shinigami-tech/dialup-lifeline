@@ -1,0 +1,29 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. CRC-16/X.25 with test vectors and single-bit-flip property _(Req 3.3)_": [
+      {
+        "executionId": "688b3dfc-e41d-4cb6-85d9-356e10e6b106",
+        "chatSessionId": "sess_f3d0fdfa-39fd-40b0-a4b1-b81963dddb12",
+        "timestamp": 1794411604255
+      },
+      {
+        "executionId": "688b3dfc-e41d-4cb6-85d9-356e10e6b106",
+        "chatSessionId": "sess_f3d0fdfa-39fd-40b0-a4b1-b81963dddb12",
+        "timestamp": 1794411962570
+      }
+    ],
+    "2. HDLC framing with bit stuffing + NRZI, round-trip property _(Req 1.2)_": [
+      {
+        "executionId": "92f1c913-6f94-4df7-876d-6c72179ab7b5",
+        "chatSessionId": "sess_3db1cbfd-210b-4ed2-a05b-419501e63dd3",
+        "timestamp": 1794412022240
+      },
+      {
+        "executionId": "92f1c913-6f94-4df7-876d-6c72179ab7b5",
+        "chatSessionId": "sess_3db1cbfd-210b-4ed2-a05b-419501e63dd3",
+        "timestamp": 1794412648201
+      }
+    ]
+  }
+}

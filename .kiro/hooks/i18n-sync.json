@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Keep translations in sync",
+      "description": "When the English strings file changes, add missing keys to all other languages.",
+      "trigger": "PostFileSave",
+      "matcher": "src/i18n/en\\.ts$",
+      "action": {
+        "type": "agent",
+        "prompt": "src/i18n/en.ts changed. For ru, kk, es, tr and ja add any missing keys with accurate, short, calm translations suitable for people under stress. Keep emergency wording plain. Never delete existing keys."
+      },
+      "enabled": true
+    }
+  ]
+}
