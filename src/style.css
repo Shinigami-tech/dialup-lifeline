@@ -34,7 +34,7 @@ input[type=text]{width:100%;font:inherit;font-size:18px;padding:14px;border-radi
 .nav{display:flex;gap:10px} .nav button{flex:1;min-height:56px;font-family:var(--font-head);font-size:22px;border-color:var(--dim)}
 .hidden{display:none!important}
 .banner{position:fixed;left:16px;right:16px;top:12px;padding:14px;border-radius:14px;background:var(--red);color:#fff;font-weight:700;text-align:center;z-index:5}
-.nav{position:sticky;bottom:0;background:var(--bg);padding-top:6px}
+.nav{position:sticky;bottom:0;z-index:3;background:var(--bg);padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
 .nav button.on{background:#063;color:#fff;border-color:var(--fg)}
 .stop{min-height:64px;font-family:var(--font-head);font-size:28px;color:#fff;background:#552200;border-color:var(--amber)}
 .heard{padding:14px;border:3px solid var(--fg);border-radius:14px;font-family:var(--font-head);font-size:30px;text-align:center;background:#003d18;color:#fff}
@@ -51,3 +51,11 @@ select{font:inherit;font-size:18px;padding:12px;border-radius:12px;background:va
 .l.ok{color:var(--fg)}
 body.plain{--bg:#000;--panel:#111;--fg:#fff;--dim:#bbb}
 body.plain::after{display:none}
+.nav{gap:6px}
+.nav button{flex:1 1 0;min-width:0;font-size:clamp(14px,4.2vw,22px);padding:4px 2px;overflow-wrap:anywhere;line-height:1.05}
+.radar{display:block;width:min(100%,320px);height:auto;aspect-ratio:1/1;max-height:none;margin:0 auto}
+.radar{width:min(86vw,320px)!important;height:min(86vw,320px)!important;aspect-ratio:auto}
+.nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:64px;overflow-wrap:normal}
+.nav .ni{font-size:24px;position:relative;line-height:1}
+.nav .nl{font-size:clamp(11px,3.1vw,16px);letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.nav .badge{position:absolute;top:-6px;right:-14px;background:var(--red);color:#fff;border-radius:999px;font:700 11px/1 system-ui;padding:3px 6px}

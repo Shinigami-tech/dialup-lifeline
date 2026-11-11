@@ -6,6 +6,7 @@ import { t, setLang, lang, LANGS, LANG_NAMES, type Lang } from './i18n';
 import { saveMsg, loadMsgs } from './store';
 
 type Case = Msg & { status?: 'onway' | 'resolved' };
+const NAV_ICON = { home: '🏠', inbox: '📻', rescue: '🚑', settings: '⚙️' } as const;
 const ICON: Record<Flag, string> = { injured: '🩸', trapped: '🧱', water: '💧', medicine: '💊', fire: '🔥', children: '🧒', elderly: '🧓' };
 const pref = (k: string, d: boolean) => { try { const v = localStorage.getItem(k); return v === null ? d : v === '1'; } catch { return d; } };
 const setPref = (k: string, v: boolean) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch { /* ignore */ } };
@@ -192,7 +193,9 @@ function radar(cases: Case[]) {
   const c = document.getElementById('radar') as HTMLCanvasElement | null;
   if (!c) return;
   const g = c.getContext('2d')!;
-  const w = (c.width = c.clientWidth * devicePixelRatio), h = (c.height = c.clientHeight * devicePixelRatio);
+  const side = c.clientWidth;
+
+  const w = (c.width = side * devicePixelRatio), h = (c.height = side * devicePixelRatio);
   const cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2 - 8;
   const fg = state.plain ? '#ffffff' : '#33ff66';
   g.clearRect(0, 0, w, h);
@@ -222,7 +225,7 @@ function render() {
   const sos = cases.filter((c) => c.kind === 'SOS');
   const myAck = [...state.mine].some((id) => state.acked.has(id));
   const tabs = (['home', 'inbox', 'rescue', 'settings'] as const).map((k) =>
-    `<button class="${state.tab === k || (k === 'home' && state.tab === 'builder') ? 'on' : ''}" data-tab="${k}">${T[k]}${k === 'inbox' && sos.length ? ` (${sos.length})` : ''}</button>`).join('');
+    `<button class="${state.tab === k || (k === 'home' && state.tab === 'builder') ? 'on' : ''}" data-tab="${k}"><span class="ni">${NAV_ICON[k]}${k === 'inbox' && sos.length ? `<b class="badge">${sos.length}</b>` : ''}</span><span class="nl">${T[k]}</span></button>`).join('');
 
   let body = '';
   if (state.tab === 'home') {
