@@ -12,6 +12,7 @@ It's a dead technology everybody remembers by its screech. We brought it back fr
 ## What it does
 - **One-tap SOS.** Pick what's happening (trapped, injured, fire, water, medicine, children, elderly), set the number of people and add a landmark. The phone screeches a packet with your GPS position. It repeats every 60 s until a rescuer answers.
 - **Every phone is a receiver.** Phones in earshot decode the tones, show distance and direction to the caller, and save the message offline.
+- **Every phone is a relay (mesh).** A phone that hears an SOS it hasn't seen before repeats it a few seconds later, one hop further (up to 7 hops), so a call for help can travel block to block. Duplicates are suppressed, every phone listens before it talks, and the rescuer's answer hops back the same way. You can turn relaying off in Settings.
 - **Rescue Mode.**
   - Rescuers see every call on a radar, sorted by urgency: trapped > injured > fire > medicine, then by number of people, then by time waiting.
   - An automatic ACK tells the sender "Rescuers heard you". The rescuer then broadcasts ON THE WAY / RESOLVED.
@@ -26,6 +27,9 @@ It's a dead technology everybody remembers by its screech. We brought it back fr
   - a delay-domain quadrature correlator demodulator;
   - a second-order PLL for clock recovery, which survives ±2% clock mismatch between two cheap phones.
 - **Link layer:** HDLC framing with bit stuffing, NRZI and CRC-16/X.25. It is the same link layer as amateur-radio APRS, so a phone held to a walkie-talkie can carry the packet for kilometres.
+- **Packet:** a compact 17-byte binary SOS (type, 32-bit id, hop/TTL, position to ~11 m, status flags, people, battery, optional 40-byte note), so one SOS is about 0.4 s of sound.
+- **Mesh relay:** gossip with a random 2-8 s delay, suppression when another relay already repeated it, a 24 h dedup store in IndexedDB, listen-before-talk with exponential backoff, and RX muted while transmitting.
+- **Robust mode:** 300 baud with the same framing, for noisy rooms.
 - **App:**
   - an AudioWorklet microphone tap (echo cancellation, noise suppression and AGC turned off, because they destroy modem tones);
   - IndexedDB;
@@ -48,7 +52,8 @@ Kiro was our engineering partner from the first line. See the `/.kiro` folder.
   1. The HDLC deframer leaked the leading 0 of a closing flag into the payload. The round-trip property failed. Kiro traced it bit by bit and redesigned the deframer with a `pendingZero` lookahead.
   2. Our first clock-skew property was vacuous: it cancelled its own skew. Once we corrected the model and fed the finding back to Kiro, a 56-case gain sweep exposed an inverted PLL integrator sign. After the fix, the PLL holds a lock at ±2% skew with noise.
   - Lesson: a property test is only as good as the model inside it. Kiro and a human reviewer together got the model right.
-- **Result:** 57 tests green, including an end-to-end test that sends a real SOS through the modulator, a skewed and noisy channel, and the demodulator.
+  3. Mesh relay: an end-to-end test with three real browsers passing real AFSK audio (sender → relay phone → rescuer) showed the relay phone never relaying. The sender transmits each packet twice, and the second copy was treated as "another relay already repeated it". We fed the finding to Kiro: it updated Requirement 2.2, wrote the property ("a repeat at a lower hop never suppresses; a copy at our hop or higher always does") and fixed the scheduler. The same test also caught the sender relaying the ACK addressed to itself.
+- **Result:** 150 tests green in 16 files, including a mesh simulator that proves every SOS reaches each phone in its connected component exactly once, and an end-to-end test that sends a real SOS through the modulator, a skewed and noisy channel, and the demodulator.
 
 ## Challenges we ran into
 - Real phones never agree on their sample clock, so a naive demodulator loses bit sync within one packet. We needed a real PLL, and we needed a test that actually models the skew.
@@ -64,8 +69,8 @@ Kiro was our engineering partner from the first line. See the `/.kiro` folder.
 - Spec-driven development with Kiro made a DSP project tractable: small, testable tasks, each traced to a requirement.
 
 ## What's next for Dial-Up Lifeline
-- A compact 17-byte binary packet and a **store-and-forward mesh relay**, so phones re-broadcast what they hear and a message hops block to block. It has duplicate suppression and listen-before-talk. Specified in `.kiro/specs/mesh-relay`.
-- A robust 300-baud mode for noisy rooms, and a Radio Bridge for walkie-talkies.
+- A Radio Bridge mode for walkie-talkies and CB radios.
+- Field tests with real phones in noisy rooms, then tuning the busy-channel threshold.
 - Pilots with school emergency drills and volunteer rescue groups in Kazakhstan.
 
 ## Built with

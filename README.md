@@ -5,7 +5,7 @@ When the internet, the cell network and the power are all gone, Dial-Up Lifeline
 
 > Kiroween 2026 · Category: **Resurrection** · Built with [Kiro](https://kiro.dev)
 >
-> **▶ Live app: https://dialup-lifeline.vercel.app** (open on two devices: LISTEN on one, I NEED HELP on the other)
+> **▶ Live app: https://dialup-lifeline.vercel.app** (open on two devices: LISTEN on one, I NEED HELP on the other; a third device in between relays it)
 
 ![Rescue Mode](docs/screenshots/rescue.png)
 
@@ -23,6 +23,7 @@ We brought it back from the dead.
 |---|---|
 | 🆘 **One-tap SOS** | Pick your situation (trapped, injured, fire, water, medicine, children, elderly), the number of people and a landmark. The phone screeches a compact packet with your GPS. |
 | 📻 **Every phone is a receiver** | Any phone in earshot decodes the tones, shows distance and direction to the caller, and stores the message offline. |
+| 🔗 **Every phone is a relay** | A phone that hears an SOS it hasn't seen repeats it 2-8 s later, one hop further (up to 7), so a call for help travels block to block. Duplicates are suppressed, phones listen before they talk, and the rescuer's ACK hops back the same way. |
 | 🚑 **Rescue Mode** | Rescuers see every call on a radar, **sorted by urgency** (trapped > injured > fire > medicine, then people count and waiting time). An automatic **ACK** tells the sender *"Rescuers heard you"*; the rescuer can then broadcast *ON THE WAY* or *RESOLVED*. |
 | 🔁 **Repeat until answered** | The SOS repeats every 60 s until an ACK is heard. The app never claims a message arrived unless it heard the answer. |
 | 🌍 **6 languages** | English, Русский, Қазақша, Español, Türkçe, 日本語. Huge buttons, icons and plain wording for people under stress. |
@@ -64,7 +65,7 @@ See [`docs/kiro-devlog.md`](docs/kiro-devlog.md) for the full story.
 ```bash
 npm install
 npm run dev      # open on two phones/laptops, tap LISTEN on one, SOS on the other
-npm test         # 57 tests incl. fast-check properties and an end-to-end SOS over the modem
+npm test         # 150 tests incl. fast-check properties, a mesh simulator and an end-to-end SOS over the modem
 npm run build
 ```
 
@@ -72,8 +73,8 @@ Tip: use speakers at medium volume and keep the devices within 1 to 3 m for the 
 
 ## Roadmap
 
-- Compact 17-byte binary packet and **store-and-forward mesh relay** with duplicate suppression and listen-before-talk (spec: `.kiro/specs/mesh-relay`).
-- 300-baud robust mode for noisy rooms; Radio Bridge mode for walkie-talkies.
+- ✅ Done: compact 17-byte binary packet, mesh relay, 300-baud robust mode.
+- Radio Bridge mode for walkie-talkies.
 - Offline map tiles in Rescue Mode; CSV export for coordinators.
 
 ## License
