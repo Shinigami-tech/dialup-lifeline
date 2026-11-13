@@ -15,6 +15,8 @@ const msgArb = fc.record({
   kind, id, ref: kind === 'ACK' || kind === 'INFO' ? ref : undefined, flags: [], people, hop, time: 1_000,
 }));
 const rng = () => 0.5;
+/** A different valid 8-hex id derived from `id`. */
+const hexOther = (id: string) => ((parseInt(id, 16) + 1) >>> 0).toString(16).padStart(8, '0');
 
 describe('msg relay glue', () => {
   it('relays every kind exactly once with hop + 1 and the same wire id', () => {
@@ -47,6 +49,39 @@ describe('msg relay glue', () => {
       expect(takeDueMsgs(r, 20_000)).toEqual([]);
       expect(heardMsg(r, m, 21_000, rng).outcome).toBe('duplicate');
     }));
+  });
+
+  it('origin repeating itself (same hop) does not cancel the pending relay', () => {
+    fc.assert(fc.property(msgArb.filter((m) => m.hop < 7), (m) => {
+      const r = createMsgRelay();
+      heardMsg(r, m, 0, rng);
+      expect(heardMsg(r, m, 400, rng).outcome).toBe('duplicate'); // second copy of "PACKET 2/2"
+      const out = takeDueMsgs(r, 8_000);
+      expect(out).toHaveLength(1);
+      expect(out[0]!.hop).toBe(m.hop + 1);
+    }));
+  });
+
+  it('does not relay an ACK/INFO whose ref is one of our own messages', () => {
+    fc.assert(fc.property(hex8, hex8, fc.constantFrom('ACK', 'INFO' as const), fc.integer({ min: 0, max: 6 }), (mine, ackId, k, hop) => {
+      fc.pre(mine !== ackId);
+      const r = createMsgRelay();
+      markOwn(r, mine, 0);
+      const ack: Msg = { kind: k as Msg['kind'], id: ackId, ref: mine, flags: [], people: 0, hop, time: 0 };
+      expect(heardMsg(r, ack, 100, rng)).toEqual({ fresh: true, outcome: 'destination' });
+      expect(takeDueMsgs(r, 20_000)).toEqual([]);
+      expect(heardMsg(r, ack, 30_000, rng).fresh).toBe(false);
+      // an ACK for somebody else's message is still relayed
+      const other: Msg = { ...ack, id: hexOther(ackId), ref: hexOther(mine) };
+      expect(heardMsg(r, other, 40_000, rng).outcome).toBe('scheduled');
+    }));
+  });
+
+  it('a message we only forwarded does not make us the destination of its ACK', () => {
+    const r = createMsgRelay();
+    markOwn(r, 'c0ffee01', 0, false);
+    const ack: Msg = { kind: 'ACK', id: 'aaaa0001', ref: 'c0ffee01', flags: [], people: 0, hop: 1, time: 0 };
+    expect(heardMsg(r, ack, 100, rng).outcome).toBe('scheduled');
   });
 
   it('does not relay our own messages when they echo back', () => {

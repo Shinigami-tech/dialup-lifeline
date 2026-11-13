@@ -164,4 +164,22 @@ describe('relay scheduler (properties)', () => {
       }),
     );
   });
+
+  it('origin repeats never suppress; a copy at >= our hop always suppresses', () => {
+    fc.assert(
+      fc.property(relayablePacket, nowArb, rngArb, fc.integer({ min: 0, max: 7 }), (p, now, r, heardHop) => {
+        const s = createRelayState();
+        const { dueMs } = onHeard(s, p, now, () => r);
+        const ourHop = p.hop + 1;
+        const res = onHeard(s, { ...p, hop: heardHop }, now + 1, () => r);
+        if (heardHop >= ourHop) {
+          expect(res.outcome).toBe('suppressed');
+          expect(due(s, dueMs! + 1_000_000)).toEqual([]);
+        } else {
+          expect(res.outcome).toBe('duplicate'); // includes the origin repeating itself (same hop)
+          expect(due(s, dueMs! + 1_000_000)).toHaveLength(1);
+        }
+      }),
+    );
+  });
 });

@@ -11,17 +11,20 @@ import { createRelayState, due, onHeard, type HeardOutcome, type RelayState, typ
 
 export interface MsgRelay {
   readonly state: RelayState;
+  /** Ids of messages this phone originated: ACK/INFO referring to them are addressed to us. */
+  readonly own: Set<string>;
   readonly backend: SeenBackend | null;
 }
 
 export interface HeardMsgResult {
   /** First time this id was heard (within 24 h). */
   readonly fresh: boolean;
-  readonly outcome: HeardOutcome;
+  /** 'destination': an ACK/INFO answering one of our own messages; we are the end of its path. */
+  readonly outcome: HeardOutcome | 'destination';
 }
 
 export function createMsgRelay(relayEnabled = true, backend: SeenBackend | null = null): MsgRelay {
-  return { state: createRelayState(relayEnabled), backend };
+  return { state: createRelayState(relayEnabled), own: new Set(), backend };
 }
 
 export function setRelayEnabled(r: MsgRelay, enabled: boolean): void {
@@ -51,8 +54,12 @@ function persist(r: MsgRelay, msgId: number, nowMs: number): void {
   r.backend?.put({ msgId, firstSeenMs: nowMs }).catch(() => undefined);
 }
 
-/** Record a message we originate or already relayed, so echoes of it are never relayed again. */
-export function markOwn(r: MsgRelay, id: string, nowMs: number): void {
+/**
+ * Record a message we send so echoes of it are never relayed again. Pass `originated = false` for a
+ * message we only forward: ACK/INFO answering it are then still relayed (we are not the destination).
+ */
+export function markOwn(r: MsgRelay, id: string, nowMs: number, originated = true): void {
+  if (originated) r.own.add(id);
   const n = idToNumber(id);
   if (markSeen(r.state.seen, n, nowMs)) persist(r, n, nowMs);
 }
@@ -63,6 +70,14 @@ export function markOwn(r: MsgRelay, id: string, nowMs: number): void {
  * before it fires cancels it.
  */
 export function heardMsg(r: MsgRelay, m: Msg, nowMs: number, rng: Rng): HeardMsgResult {
+  if ((m.kind === 'ACK' || m.kind === 'INFO') && m.ref !== undefined && r.own.has(m.ref)) {
+    // Addressed to us: never carry it further. Still dedup it so it counts once.
+    const n = idToNumber(m.id);
+    const fresh = markSeen(r.state.seen, n, nowMs);
+    if (fresh) persist(r, n, nowMs);
+    r.state.pending.delete(n);
+    return { fresh, outcome: 'destination' };
+  }
   const res = onHeard(r.state, msgToPacket(m), nowMs, rng);
   if (res.fresh) persist(r, idToNumber(m.id), nowMs);
   return { fresh: res.fresh, outcome: res.outcome };

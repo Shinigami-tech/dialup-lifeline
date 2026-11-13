@@ -86,7 +86,7 @@ let txBusy = false;
  * Resolves true if the message was actually sent.
  */
 async function sendRaw(m: Msg, opts: { relay?: boolean } = {}): Promise<boolean> {
-  markOwn(relayNode, m.id, Date.now()); // never relay echoes of what we send
+  markOwn(relayNode, m.id, Date.now(), !opts.relay); // never relay echoes of what we send
   while (txBusy) await sleepMs(200);
   txBusy = true;
   try {

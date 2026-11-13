@@ -12,7 +12,7 @@ One phone's speaker reaches maybe 10-30 m. Relaying lets an SOS hop from phone t
 ## Requirement 2: Relaying
 **User story:** As a bystander, I want my phone to pass on messages it hears so they travel further.
 1. WHEN a valid packet with an unseen id and hop count < TTL is received THE SYSTEM SHALL store it and schedule a rebroadcast after a random delay of 2-8 s.
-2. IF the same id is heard again from another relay before the scheduled rebroadcast THEN THE SYSTEM SHALL cancel its own rebroadcast (suppression, avoids flooding).
+2. IF the same id is heard again from another relay, meaning a copy whose hop count is greater than or equal to the hop count of our pending rebroadcast, before the scheduled rebroadcast THEN THE SYSTEM SHALL cancel its own rebroadcast (suppression, avoids flooding). A repeat at a lower hop count (for example the origin sending its packet twice) SHALL NOT cancel it.
 3. THE SYSTEM SHALL never rebroadcast a packet more than once per device.
 4. WHILE the device is transmitting THE SYSTEM SHALL pause its receiver to avoid hearing itself.
 5. WHERE relaying is disabled by the user THE SYSTEM SHALL only listen and display.

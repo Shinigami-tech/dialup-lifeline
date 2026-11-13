@@ -29,7 +29,7 @@ export interface RelayState {
 
 export type HeardOutcome =
   | 'scheduled'
-  | 'suppressed' // duplicate heard while our relay was pending: cancelled
+  | 'suppressed' // copy from another relay (hop >= our pending hop) heard while pending: cancelled
   | 'duplicate' // already seen, nothing pending
   | 'ttl-exhausted'
   | 'relay-disabled';
@@ -65,9 +65,14 @@ export function toRelayed(p: Packet): Packet {
 export function onHeard(state: RelayState, packet: Packet, nowMs: number, rng: Rng): HeardResult {
   const fresh = markSeen(state.seen, packet.msgId, nowMs);
   if (!fresh) {
-    // Same id heard again (from another relay): cancel our pending rebroadcast, if any.
-    const cancelled = state.pending.delete(packet.msgId);
-    return { fresh: false, outcome: cancelled ? 'suppressed' : 'duplicate' };
+    // Suppress only when the copy comes from another relay: its hop is >= the hop of our pending
+    // copy. A repeat at a lower hop is the previous hop repeating itself (senders transmit twice).
+    const pending = state.pending.get(packet.msgId);
+    if (pending && packet.hop >= pending.packet.hop) {
+      state.pending.delete(packet.msgId);
+      return { fresh: false, outcome: 'suppressed' };
+    }
+    return { fresh: false, outcome: 'duplicate' };
   }
   if (!state.relayEnabled) return { fresh, outcome: 'relay-disabled' };
   if (!canRelay(packet)) return { fresh, outcome: 'ttl-exhausted' };

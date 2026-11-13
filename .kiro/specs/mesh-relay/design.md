@@ -22,7 +22,9 @@ Gossip with suppression (similar to Trickle / Meshtastic managed flooding), tune
 Total without note: 136 bits = 17 bytes.
 
 ## Relay state machine
-`heard -> (unseen & hop<ttl) -> scheduled(delay 2-8 s) -> [same id heard?] -> suppressed | transmitted`
+`heard -> (unseen & hop<ttl) -> scheduled(delay 2-8 s) -> [same id heard from another relay, copy hop >= pending hop?] -> suppressed | transmitted`
+
+A repeat at a lower hop than our pending copy (the origin or an earlier hop repeating itself) is not suppression: the sender transmits every packet twice.
 Persisted in IndexedDB `messages` store keyed by msgId; `seen` set kept 24 h.
 
 ## Channel access
