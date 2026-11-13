@@ -170,6 +170,8 @@ export interface DeframeState {
   pendingZero: boolean;
   /** Count of consecutive 1-bits accumulated after the deferred 0. */
   pendingOnes: number;
+  /** Cumulative count of closed frames rejected (bad CRC / bad length). */
+  corruptedCount: number;
   /** Kept for interface stability. */
   skipNext: boolean;
   /** Kept for interface stability. */
@@ -183,6 +185,7 @@ export function createDeframeState(): DeframeState {
     inFrame: false,
     pendingZero: false,
     pendingOnes: 0,
+    corruptedCount: 0,
     skipNext: false,
     onesRun: 0,
   };
@@ -199,11 +202,11 @@ export function deframeBit(
   const completed: Uint8Array[] = [];
 
   let bitBuffer = [...state.bitBuffer];
-  let { inFrame, pendingZero, pendingOnes } = state;
+  let { inFrame, pendingZero, pendingOnes, corruptedCount } = state;
 
   if (bit === 1) {
     pendingOnes++;
-    return [completed, { bitBuffer, inFrame, pendingZero, pendingOnes, skipNext: false, onesRun: 0 }];
+    return [completed, { bitBuffer, inFrame, pendingZero, pendingOnes, corruptedCount, skipNext: false, onesRun: 0 }];
   }
 
   // ── bit === 0 ──────────────────────────────────────────────────────────────
@@ -221,6 +224,7 @@ export function deframeBit(
     if (inFrame && bitBuffer.length >= 16) {
       const extracted = tryExtractFrame(bitBuffer);
       if (extracted !== null) completed.push(extracted);
+      else corruptedCount++;
     }
     bitBuffer = [];
     inFrame = true;
@@ -242,7 +246,7 @@ export function deframeBit(
     pendingOnes = 0;
   }
 
-  return [completed, { bitBuffer, inFrame, pendingZero, pendingOnes, skipNext: false, onesRun: 0 }];
+  return [completed, { bitBuffer, inFrame, pendingZero, pendingOnes, corruptedCount, skipNext: false, onesRun: 0 }];
 }
 
 /**

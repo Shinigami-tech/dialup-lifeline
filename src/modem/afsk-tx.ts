@@ -14,11 +14,14 @@
 
 import { frame } from "./hdlc.js";
 import { nrziEncode } from "./nrzi.js";
+import { getModePreset, type ModemMode } from "./modes.js";
 
 export interface AfskTxOptions {
   /** Audio output sample rate, e.g. 44100 or 48000. */
   sampleRateHz: number;
-  /** Baud rate. Default 1200. */
+  /** Modem mode preset ('standard' 1200 baud, 'robust' 300 baud). Default 'standard'. */
+  mode?: ModemMode;
+  /** Baud rate. Overrides the mode preset. Default 1200. */
   baudRate?: number;
   /** Mark frequency in Hz. Default 1200. */
   markHz?: number;
@@ -47,11 +50,12 @@ export interface AfskTxOptions {
  * @returns Float32Array of PCM samples in the range [-amplitude, +amplitude].
  */
 export function modulate(payload: Uint8Array, opts: AfskTxOptions): Float32Array {
+  const preset = getModePreset(opts.mode);
   const {
     sampleRateHz,
-    baudRate = 1200,
-    markHz = 1200,
-    spaceHz = 2200,
+    baudRate = preset.baudRate,
+    markHz = preset.markHz,
+    spaceHz = preset.spaceHz,
     amplitude = 1.0,
     rampDurationMs = 5,
   } = opts;

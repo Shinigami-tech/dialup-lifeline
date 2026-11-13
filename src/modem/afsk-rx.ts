@@ -49,6 +49,7 @@
  */
 
 import { deframeBit, createDeframeState, type DeframeState } from "./hdlc.js";
+import { getModePreset, type ModemMode } from "./modes.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -57,7 +58,9 @@ import { deframeBit, createDeframeState, type DeframeState } from "./hdlc.js";
 export interface AfskRxOptions {
   /** Audio input sample rate in Hz (e.g. 44100 or 48000). */
   sampleRateHz: number;
-  /** Baud rate. Default 1200. */
+  /** Modem mode preset ('standard' 1200 baud, 'robust' 300 baud). Default 'standard'. */
+  mode?: ModemMode;
+  /** Baud rate. Overrides the mode preset. Default 1200. */
   baudRate?: number;
   /** Mark frequency in Hz. Default 1200. */
   markHz?: number;
@@ -73,6 +76,10 @@ export interface AfskRxOptions {
    * absorbed.  Default alpha²/4; set explicitly to override.
    */
   pllBeta?: number;
+  /** Silence duration after which receiver state resets. Default 2000 ms. */
+  silenceResetMs?: number;
+  /** Windowed RMS (full scale = 1) below which input counts as silence. Default 0.002. */
+  silenceRmsThreshold?: number;
 }
 
 export interface DemodulatorStats {
@@ -82,6 +89,8 @@ export interface DemodulatorStats {
   decodedFrames: number;
   /** Total hard bits clocked out by the PLL. */
   totalBits: number;
+  /** Times receiver state was reset after prolonged silence. */
+  silenceResets: number;
 }
 
 /** Demodulator handle returned by createDemodulator. */
@@ -106,14 +115,19 @@ export interface Demodulator {
  * @returns `{ push(samples): Uint8Array[], stats }`
  */
 export function createDemodulator(opts: AfskRxOptions): Demodulator {
+  const preset = getModePreset(opts.mode);
   const {
     sampleRateHz,
-    baudRate = 1200,
-    markHz = 1200,
-    spaceHz = 2200,
+    baudRate = preset.baudRate,
+    markHz = preset.markHz,
+    spaceHz = preset.spaceHz,
     pllAlpha = 0.15,
   } = opts;
   const pllBeta = opts.pllBeta ?? 0.002;
+  const silenceResetMs = opts.silenceResetMs ?? 2000;
+  const silenceRmsThreshold = opts.silenceRmsThreshold ?? 0.002;
+  const silenceResetSamples = Math.round((sampleRateHz * silenceResetMs) / 1000);
+  let silentSamples = 0;
 
   // Samples per symbol (may be fractional; PLL manages fractional drift).
   const symbolLen = sampleRateHz / baudRate;
@@ -177,7 +191,26 @@ export function createDemodulator(opts: AfskRxOptions): Demodulator {
     corruptedFrames: 0,
     decodedFrames: 0,
     totalBits: 0,
+    silenceResets: 0,
   };
+  // Corrupted count lives in the deframer state; mirror it into stats.
+  // Frames rejected before a reset are preserved via this offset.
+  let corruptedBase = 0;
+
+  /** Drop all signal-path state (not stats) after prolonged silence. */
+  function resetState(): void {
+    sampleBuf.fill(0);
+    rmsBuf.fill(0);
+    rmsRunSum = 0;
+    gainFactor = 1.0;
+    pllPhase = 0;
+    pllFreqBias = 0;
+    prevSoft = 0;
+    prevNrziLevel = 1;
+    corruptedBase += deframeState.corruptedCount;
+    deframeState = createDeframeState();
+    stats.silenceResets++;
+  }
 
   // ---------------------------------------------------------------------------
   // Correlate: compute mark and space energies from the circular sample buffer.
@@ -220,6 +253,14 @@ export function createDemodulator(opts: AfskRxOptions): Demodulator {
       const rms = Math.sqrt(Math.max(rmsRunSum / rmsWinSize, 0));
       if (rms > 1e-6) gainFactor = Math.min(1.0 / rms, 100.0);
       const x = raw * gainFactor;
+
+      // ── 1b. Silence watchdog: reset state after silenceResetMs of quiet ──
+      if (rms < silenceRmsThreshold) {
+        silentSamples++;
+        if (silentSamples === silenceResetSamples) resetState();
+      } else {
+        silentSamples = 0;
+      }
 
       // ── 2. Write into circular buffer ─────────────────────────────────
       bufHead = (bufHead + 1) % windowSize;
@@ -275,6 +316,7 @@ export function createDemodulator(opts: AfskRxOptions): Demodulator {
           stats.decodedFrames++;
           decoded.push(f);
         }
+        stats.corruptedFrames = corruptedBase + deframeState.corruptedCount;
       }
     }
 

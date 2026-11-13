@@ -60,6 +60,30 @@
         "chatSessionId": "sess_56034420-244b-420e-9198-e9894c66082c",
         "timestamp": 1794427188147
       }
+    ],
+    "6. AudioWorklet receiver wrapper + diagnostics counters _(Req 2.1, 2.4)_": [
+      {
+        "executionId": "507a32ee-9d54-4a44-8836-ff04b4eb9191",
+        "chatSessionId": "sess_49ba3407-2d97-491c-952a-ba34d7059d65",
+        "timestamp": 1794587748625
+      },
+      {
+        "executionId": "507a32ee-9d54-4a44-8836-ff04b4eb9191",
+        "chatSessionId": "sess_49ba3407-2d97-491c-952a-ba34d7059d65",
+        "timestamp": 1794589192239
+      }
+    ],
+    "7. Robust 300-baud mode _(Req 1.5)_": [
+      {
+        "executionId": "6aebab9f-c2f3-4fc4-bcab-d28c17c98876",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794589339578
+      },
+      {
+        "executionId": "6aebab9f-c2f3-4fc4-bcab-d28c17c98876",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794589515088
+      }
     ]
   }
 }
