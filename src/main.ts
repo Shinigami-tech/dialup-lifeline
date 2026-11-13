@@ -1,9 +1,13 @@
 // Dial-Up Lifeline UI (spec: .kiro/specs/lifeline-app).
 import './style.css';
-import { transmit, listen, type Listener } from './audio/io';
 import { encodeMsg, decodeMsg, newId, urgency, distanceBearing, FLAGS, type Flag, type Msg } from './ui/sos';
 import { t, setLang, lang, LANGS, LANG_NAMES, type Lang } from './i18n';
 import { saveMsg, loadMsgs } from './store';
+import { transmit, listen, channel, type Listener } from './audio/io';
+import { createIdbSeenBackend } from './mesh/idb-seen';
+import {
+  awaitClear, createMsgRelay, heardMsg, hydrateMsgRelay, markOwn, relayLogLine, setRelayEnabled, takeDueMsgs,
+} from './mesh/msg-relay';
 
 type Case = Msg & { status?: 'onway' | 'resolved' };
 const NAV_ICON = { home: '🏠', inbox: '📻', rescue: '🚑', settings: '⚙️' } as const;
@@ -24,6 +28,7 @@ const state = {
   pos: null as null | { lat: number; lon: number },
   rescue: pref('rescue', false),
   drill: pref('drill', false),
+  relay: pref('relay', true),
   plain: pref('plain', false),
 };
 const logLines: { text: string; cls: string }[] = ['ATZ', 'OK', 'ATDT 0-LIFELINE … READY'].map((text) => ({ text, cls: '' }));
@@ -68,18 +73,44 @@ async function position(): Promise<{ lat?: number; lon?: number }> {
   });
 }
 
+// Mesh relay (spec: .kiro/specs/mesh-relay). Seen ids persist in IndexedDB; falls back to memory only.
+let seenBackend: ReturnType<typeof createIdbSeenBackend> | null = null;
+try { seenBackend = createIdbSeenBackend(); } catch { /* IndexedDB unavailable: in-memory dedup only */ }
+const relayNode = createMsgRelay(state.relay, seenBackend);
+const sleepMs = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
 let txBusy = false;
-async function sendRaw(m: Msg) {
-  while (txBusy) await new Promise((r) => setTimeout(r, 200));
+/**
+ * Transmit with listen-before-talk. Our own TX mutes RX (channel state machine + listener.muted).
+ * Relays (`relay: true`) are dropped if the channel never clears; our own messages go out anyway.
+ * Resolves true if the message was actually sent.
+ */
+async function sendRaw(m: Msg, opts: { relay?: boolean } = {}): Promise<boolean> {
+  markOwn(relayNode, m.id, Date.now()); // never relay echoes of what we send
+  while (txBusy) await sleepMs(200);
   txBusy = true;
-  if (state.listener) state.listener.muted = true;
   try {
-    await transmit(encodeMsg(m), onSamples);
+    const clear = await awaitClear({ channel, nowMs: () => performance.now(), sleepMs, rng: Math.random });
+    if (!clear && opts.relay) return false;
+    if (state.listener) state.listener.muted = true;
+    try {
+      await transmit(encodeMsg(m), onSamples);
+    } finally {
+      if (state.listener) state.listener.muted = false;
+    }
+    return true;
   } finally {
-    if (state.listener) state.listener.muted = false;
     txBusy = false;
   }
 }
+
+async function relayOut(m: Msg) {
+  if (await sendRaw(m, { relay: true })) log(relayLogLine(m), 'warn');
+}
+window.setInterval(() => {
+  if (!state.relay) return;
+  for (const m of takeDueMsgs(relayNode, Date.now())) void relayOut(m);
+}, 500);
 
 async function sendSos(kind: 'SOS' | 'OK') {
   await ensureListening();
@@ -125,6 +156,8 @@ async function ensureListening() {
 function onFrame(payload: Uint8Array) {
   const m = decodeMsg(payload);
   if (!m) return;
+  // Relay every kind (SOS, OK, ACK, INFO) before app handling, so ACKs hop back too.
+  heardMsg(relayNode, m, Date.now(), Math.random);
   if (m.kind === 'ACK' && m.ref && state.mine.has(m.ref)) {
     if (!state.acked.has(m.ref)) {
       state.acked.add(m.ref);
@@ -256,6 +289,7 @@ function render() {
   } else {
     body = `<section class="settings">
       <label>${T.language}<select id="lang">${(Object.keys(LANGS) as Lang[]).map((l) => `<option value="${l}" ${l === lang() ? 'selected' : ''}>${LANG_NAMES[l]}</option>`).join('')}</select></label>
+      <label class="toggle"><input type="checkbox" data-pref="relay" ${state.relay ? 'checked' : ''}/> ${T.relay}</label>
       <label class="toggle"><input type="checkbox" data-pref="drill" ${state.drill ? 'checked' : ''}/> ${T.drill}</label>
       <label class="toggle"><input type="checkbox" data-pref="plain" ${state.plain ? 'checked' : ''}/> ${T.theme}</label>
       <p class="meta">Dial-Up Lifeline · Bell 202 AFSK 1200 baud · works offline · MIT</p></section>`;
@@ -300,8 +334,9 @@ document.addEventListener('click', (e) => {
 document.addEventListener('change', (e) => {
   const el = e.target as HTMLInputElement | HTMLSelectElement;
   if (el.id === 'lang') { setLang(el.value as Lang); render(); return; }
-  const k = (el as HTMLInputElement).dataset.pref as 'rescue' | 'drill' | 'plain' | undefined;
-  if (k) { state[k] = (el as HTMLInputElement).checked; setPref(k, state[k]); if (k === 'rescue' && state[k]) void ensureListening(); render(); }
+  const k = (el as HTMLInputElement).dataset.pref as 'rescue' | 'drill' | 'plain' | 'relay' | undefined;
+  if (k) { state[k] = (el as HTMLInputElement).checked; setPref(k, state[k]); if (k === 'relay') setRelayEnabled(relayNode, state.relay);
+    if (k === 'rescue' && state[k]) void ensureListening(); render(); }
 });
 document.addEventListener('input', (e) => {
   const el = e.target as HTMLInputElement;
@@ -310,6 +345,7 @@ document.addEventListener('input', (e) => {
 
 // ---------- boot ----------
 setLang(lang());
+void hydrateMsgRelay(relayNode, Date.now()).catch(() => undefined);
 void loadMsgs().then((list) => {
   for (const m of list) if (m.kind === 'SOS' || m.kind === 'OK') state.cases.set(m.id, m as Case);
   render();
@@ -319,4 +355,4 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('/sw.js').catch(() => { /* offline install optional */ });
 }
 // test hook used by the end-to-end demo / e2e tests (no network, pure in-page)
-(window as unknown as { __lifeline: unknown }).__lifeline = { onFrame, encodeMsg, state };
+(window as unknown as { __lifeline: unknown }).__lifeline = { onFrame, encodeMsg, state, relayNode };
