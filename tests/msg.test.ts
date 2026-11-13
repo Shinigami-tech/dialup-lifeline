@@ -6,13 +6,13 @@ import { createDemodulator } from '../src/modem/afsk-rx';
 
 const msgArb = fc.record({
   kind: fc.constantFrom('SOS', 'OK', 'ACK', 'INFO') as fc.Arbitrary<Msg['kind']>,
-  id: fc.string({ unit: fc.constantFrom(...'0123456789abcdef'), minLength: 6, maxLength: 6 }),
-  ref: fc.option(fc.string({ unit: fc.constantFrom(...'0123456789abcdef'), minLength: 6, maxLength: 6 }), { nil: undefined }),
+  id: fc.string({ unit: fc.constantFrom(...'0123456789abcdef'), minLength: 8, maxLength: 8 }),
+  ref: fc.option(fc.string({ unit: fc.constantFrom(...'0123456789abcdef'), minLength: 8, maxLength: 8 }), { nil: undefined }),
   flags: fc.subarray([...FLAGS]),
   people: fc.integer({ min: 0, max: 15 }),
   lat: fc.option(fc.integer({ min: -900000, max: 900000 }).map((v) => v / 1e4), { nil: undefined }),
   lon: fc.integer({ min: -1800000, max: 1800000 }).map((v) => v / 1e4),
-  note: fc.option(fc.string({ maxLength: 40 }).filter((s) => !s.includes('|') && s.length > 0), { nil: undefined }),
+  note: fc.option(fc.string({ unit: 'grapheme', maxLength: 40 }).filter((s) => s.length > 0 && new TextEncoder().encode(s).length <= 40), { nil: undefined }),
   drill: fc.boolean(),
   hop: fc.integer({ min: 0, max: 7 }),
 });
@@ -20,7 +20,9 @@ const msgArb = fc.record({
 describe('message codec', () => {
   it('round-trips every valid message (property)', () => {
     fc.assert(fc.property(msgArb, (raw) => {
-      const m = { ...raw, lon: raw.lat === undefined ? undefined : raw.lon, time: 0 } as Msg;
+      // `ref` only exists on ACK/INFO (they refer to another message) and is mandatory there.
+      const isRef = raw.kind === 'ACK' || raw.kind === 'INFO';
+      const m = { ...raw, ref: isRef ? (raw.ref ?? '0badf00d') : undefined, lon: raw.lat === undefined ? undefined : raw.lon, time: 0 } as Msg;
       const d = decodeMsg(encodeMsg(m))!;
       expect(d.kind).toBe(m.kind); expect(d.id).toBe(m.id); expect(d.ref).toBe(m.ref);
       expect(d.flags).toEqual(m.flags); expect(d.people).toBe(m.people); expect(d.drill).toBe(m.drill);
@@ -32,6 +34,21 @@ describe('message codec', () => {
   it('rejects garbage', () => {
     expect(decodeMsg(new Uint8Array([0xff, 0xfe, 0x00]))).toBeNull();
     expect(decodeMsg(new TextEncoder().encode('HELLO|x'))).toBeNull();
+    expect(decodeMsg(new Uint8Array())).toBeNull();
+  });
+  it('encodes an SOS without note in 20 bytes or less', () => {
+    const m: Msg = { kind: 'SOS', id: 'ab12cd34', flags: ['trapped'], people: 2, lat: 51.1694, lon: 71.4491, hop: 0, time: 0 };
+    expect(encodeMsg(m).length).toBeLessThanOrEqual(20);
+  });
+  it('keeps ACK refs, drill flag and truncates long notes at a UTF-8 boundary', () => {
+    const ack: Msg = { kind: 'ACK', id: '00000001', ref: 'deadbeef', flags: [], people: 0, hop: 0, drill: true, time: 0 };
+    const d = decodeMsg(encodeMsg(ack))!;
+    expect(d.ref).toBe('deadbeef'); expect(d.drill).toBe(true);
+    const long: Msg = { ...ack, kind: 'SOS', ref: undefined, note: 'я'.repeat(40) };
+    expect(decodeMsg(encodeMsg(long))!.note).toBe('я'.repeat(20));
+  });
+  it('rejects ids that are not 8 hex chars when encoding', () => {
+    expect(() => encodeMsg({ kind: 'SOS', id: 'xyz', flags: [], people: 0, hop: 0, time: 0 })).toThrow(RangeError);
   });
 });
 
@@ -48,7 +65,7 @@ describe('rescue triage', () => {
 });
 
 it('end-to-end: real SOS goes through the modem with 1% clock skew and noise', () => {
-  const m: Msg = { kind: 'SOS', id: 'ab12cd', flags: ['trapped', 'water'], people: 3, lat: 51.1694, lon: 71.4491, note: 'school gym, 2nd floor', hop: 0, time: 0 };
+  const m: Msg = { kind: 'SOS', id: 'ab12cd34', flags: ['trapped', 'water'], people: 3, lat: 51.1694, lon: 71.4491, note: 'school gym, 2nd floor', hop: 0, time: 0 };
   const rate = 48000, tx = modulate(encodeMsg(m), { sampleRateHz: rate, amplitude: 0.6 });
   const skew = 1.01, n = Math.floor(tx.length / skew), rx = new Float32Array(n);
   let seed = 1; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;

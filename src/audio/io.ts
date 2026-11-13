@@ -1,6 +1,11 @@
 // Web Audio glue: speaker scheduler + microphone capture worklet.
 import { modulate } from '../modem/afsk-tx';
 import { createDemodulator, type Demodulator } from '../modem/afsk-rx';
+import { acceptFrame, createChannel, noteActivity, txEnd, txStart } from '../mesh/channel';
+
+/** Shared half-duplex channel state (listen-before-talk + own-TX mute). Clock: performance.now(). */
+export const channel = createChannel();
+const CARRIER_RMS = 0.02;
 
 let ctx: AudioContext | null = null;
 export function audioContext(): AudioContext {
@@ -19,10 +24,15 @@ export async function transmit(payload: Uint8Array, onSamples?: (s: Float32Array
   const src = ac.createBufferSource();
   src.buffer = buf;
   src.connect(ac.destination);
-  await new Promise<void>((resolve) => {
-    src.onended = () => resolve();
-    src.start();
-  });
+  txStart(channel);
+  try {
+    await new Promise<void>((resolve) => {
+      src.onended = () => resolve();
+      src.start();
+    });
+  } finally {
+    txEnd(channel, performance.now());
+  }
 }
 
 const WORKLET = `
@@ -70,8 +80,12 @@ export async function listen(
   };
   tap.port.onmessage = (e: MessageEvent<Float32Array>) => {
     onLevel?.(e.data);
+    const nowMs = performance.now();
     if (listener.muted) return;
-    for (const f of demod.push(e.data)) onFrame(f);
+    let sum = 0;
+    for (let i = 0; i < e.data.length; i++) sum += e.data[i]! * e.data[i]!;
+    if (e.data.length && Math.sqrt(sum / e.data.length) > CARRIER_RMS) noteActivity(channel, nowMs);
+    for (const f of demod.push(e.data)) if (acceptFrame(channel, nowMs)) onFrame(f);
   };
   return listener;
 }

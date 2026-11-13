@@ -1,0 +1,107 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Bit-level packet encoder/decoder + round-trip property _(Req 1)_": [
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794591344337
+      },
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794591349423
+      },
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794593506209
+      }
+    ],
+    "2. Dedup store with 24 h expiry (pure) + IndexedDB adapter _(Req 2.1, 2.3)_": [
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794591344403
+      },
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794593510043
+      },
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794595156772
+      }
+    ],
+    "3. Relay scheduler with random delay and suppression _(Req 2.1, 2.2)_": [
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794591344439
+      },
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794595159567
+      },
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794597626721
+      }
+    ],
+    "4. Listen-before-talk + mute RX while TX _(Req 2.4)_": [
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794591344495
+      },
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794597629493
+      },
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794598905198
+      }
+    ],
+    "5. ACK flow and sender confirmation _(Req 3)_": [
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794591344528
+      },
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794598907817
+      },
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794599020434
+      }
+    ],
+    "6. Mesh simulator + \"exactly once in connected component\" property test": [
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794591344562
+      },
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794599023137
+      },
+      {
+        "executionId": "193fffa7-6972-44b3-a44b-6eedf9bdc994",
+        "chatSessionId": "sess_5955df3d-0e2d-4407-a779-8643d5869501",
+        "timestamp": 1794600733669
+      }
+    ]
+  }
+}
